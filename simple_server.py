@@ -4,8 +4,10 @@ from flask import Flask
 from flask import request
 from flask import jsonify
 from flask import Response
+
 import os
 import random
+from models import User, Article, Scrap, db
 
 # This line is for solving flask's CORS error
 # You need 'pip install flask_cors' to use flask_cors
@@ -63,54 +65,46 @@ def get_name():
     
     # return jsonify(maze=string.decode('utf-8', 'ignore'))
     return jsonify (ret)
-@app.route("/monte-carlo/pi", methods = ['GET'])
-def get_monte_pi():
-    n = int(request.args.get('n'))
-    global pi
-    m = 0
-    for i in range(n) :
-        x = random.random()
-        y = random.random()
-        if x * x + y * y <= 1.0 :
-            m = m + 1
-    pi = m / n * 4
-    ret = {}
-    ret["pi"] = pi
-    return jsonify (ret), 200
 
-@app.route("/get/pi", methods = ['GET'])
-def get_pi():
-    global pi
-    ret = {}
-    ret["pi"] = pi
-    return jsonify (ret), 200
-
-@app.route("/update/pi", methods=['POST'])
-def update_pi():
-    global pi
+@app.route("/scrap/post", methods = ['POST'])
+def scrap_post():
     content = request.get_json(silent=True)
-    new_pi = content["pi"]
-    pi = new_pi
+    url = content["url"]
+    category = content["category"]
+    id = content["id"]
+    scrap = Scrap(url, id, category)
+    db.session.add(scrap)
+    db.session.commit()
+    
     return jsonify(success=True), 200
 
-@app.route("/adduser", methods=['POST'])
-def update_name():
-    content = request.get_json(silent=True)
+@app.route("scrap/get", method = ['GET'])
+def get_scrap_post():
+    userId = request.args.get('id')
+    scrap = session.query(User).from_statement(
+                    "SELECT * FROM scrap WHERE id=:id").\
+                    params(id=userId).all()
+    ret = {}
+    ret['article'] = []
+    for item in scrap :
+        article = session.query(Article).from_statement(
+            "SELECT * FROM article WHERE url=:url").\
+                params(url = item.url).all()
+        ret['article'].append(article)
     
-    username = content["username"]
-    age = content["age"]
+    return jsonify(ret), 200
 
-    global users
-    exist = False
-    for usr in users:
-        if usr[0] == username:
-            exist = True
+# article : List<NewsData>
+@app.rout("article/post", method = ['POST'])
+def article_post():
+    content = request.get_json(silent=true)
+    for item in content["article"]:
+        
 
-    if exist is False:
-        users.append ([username, age])
-        return jsonify(success=True)
-    else:
-        return jsonify(success=False)
+
+
+
+
     
 if __name__ == "__main__":
     app.run(host='localhost', port=8888)
