@@ -26,10 +26,12 @@ Base.query= db_session.query_property()
 
 
 class User(Base):
-    __tablename__ = 'users'
+    __tablename__ = 'userdatas'
     userId = Column(String(32), primary_key=True)
-    def __init__(self, userId = None):
+    passWd = Column(String(32))
+    def __init__(self, userId = None, passWd = None):
         self.userId = userId
+        self.passWd = passWd
 
 class News(Base):
     __tablename__ = 'news'
@@ -81,36 +83,72 @@ app = Flask(__name__)
 
 timeFormat = "%Y-%m-%dT%H:%M:%SZ"
  
-@app.route("/adduser", methods=['POST'])
+@app.route("/user/add", methods=['POST'])
 def add_user():
     content = request.get_json(silent=True)
     userId = content["userId"]
+    passWd = content["passWd"]
     if db_session.query(User).filter_by(userId = userId).first() is None:
-        u = User(userId = userId)
+        u = User(userId = userId, passWd= passWd)
         db_session.add(u)
         db_session.commit()
         return jsonify(success=True), 200
     else:
         return jsonify(success=False), 200
+@app.route("/user/login", methods = ['POST'])
+def login():
+    content = request.get_json(silent=True)
+    userId = content["userId"]
+    passWd = content["passWd"]
+    if db_session.query(User).filter_by(userId = userId).first() is None:
+        
+        return jsonify(success=False), 400
+    else:
+        u = db_session.query(User).filter_by(userId = userId).first()
+        if u.passWd == passWd:
+            return jsonify(success = True), 200
+
+        return jsonify(success=False), 400
+
 #post MutableList<NewsData>
-@app.route("/news/post", method = ['POST'])
+@app.route("/news/post", methods = ['POST'])
 def post_news():
     contents = request.get_json(silent=True)
-    for content in contents:
+    for content in contents['newsList']:
         url = content['url']
         if db_session.query(News).filter_by(url = url).first() is None:
             urlToImage = content['urlToImage']
             description = content['description']
             title = content['title']
-            author = content['author']
+            if(content.has_key('author')):
+                author = content['author']
+            else:
+                author = None
             publishedAt = datetime.strptime(content['publishedAt'],timeFormat)
             n = News(url = url, author=author,title=title,description=description,urlToImage=urlToImage,publishedAt=publishedAt)
             db_session.add(n)
     
     db_session.commit()
     return jsonify(success = True), 200
+@app.route("/news/get", methods = ['POST'])
+def get_news():
+    content = request.get_json(silent=True)
+    url = content['url']
+    news = db_session.query(News).filter_by(url = url).first()
+    if(news is None):
+        return jsonify(success = False), 201
+    n = {}
+    n['url'] = news.url
+    n['urlToImage'] = news.urlToImage
+    n['description'] = news.description
+    n['publishedAt'] = news.publishedAt.strftime(timeFormat)
+    n['author'] = news.author
+    n['title'] = news.title
+    return jsonify(n), 200
 
-@app.rout("/news/scrap",method = ['POST'])
+
+
+@app.route("/news/scrap",methods = ['POST'])
 def scrap_news():
     content = request.get_json(silent=True)
     url = content['url']
@@ -122,7 +160,7 @@ def scrap_news():
         db_session.commit()
     return jsonify(success = True), 200
 
-@app.rout("/news/scrap/get", method = ['GET'])
+@app.route("/news/scrap/get", methods = ['GET'])
 def get_scrap_news():
     userId = request.args.get('userId')
     posts = db_session.query(Scrap).filter_by(userId = userId)
@@ -140,7 +178,7 @@ def get_scrap_news():
         ret.append(n)
     return jsonify(ret), 200
 
-@app.rout("/news/scrap/delete", method = ['POST'])
+@app.route("/news/scrap/delete", methods = ['POST'])
 def delete_scrap_news():
     content = request.get_json(silent=True)
     userId = content['userId']
@@ -151,20 +189,6 @@ def delete_scrap_news():
     db_session.delete(s)
     return jsonify(success = True), 200
 
-
-
-
-@app.route("/login", methods=['POST'])
-def login():
-    content = request.get_json(silent=True)
-    name = content["name"]
-    passwd = content["passwd"]
-    check = False
-    result = db_session.query(User).all()
-    for i in result:
-        if i.name== name and i.passwd== passwd:
-            check = True
-    return jsonify(success=check)
 
 
 if __name__ == "__main__":
