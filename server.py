@@ -34,17 +34,17 @@ class User(Base):
         self.passWd = passWd
 
 class News(Base):
-    __tablename__ = 'news'
+    __tablename__ = 'newsv2'
     
-    author = Column(String(32))
+    author = Column(String(256))
 
-    title = Column(String(128))
+    title = Column(String(256))
 
     description = Column(String(512))
 
-    url = Column(String(128), primary_key = True)
+    url = Column(String(512), primary_key = True)
 
-    urlToImage = Column(String(128))
+    urlToImage = Column(String(512))
 
     publishedAt = Column(DateTime)
 
@@ -63,7 +63,7 @@ class Scrap(Base):
 
     userId = Column(String(32), primary_key = True)
 
-    url = Column(String(128), primary_key = True)
+    url = Column(String(512), primary_key = True)
 
     category = Column(String(32))
     
@@ -117,13 +117,19 @@ def post_news():
     for content in contents['newsList']:
         url = content['url']
         if db_session.query(News).filter_by(url = url).first() is None:
-            urlToImage = content['urlToImage']
-            description = content['description']
             title = content['title']
-            if(content.has_key('author')):
+            if 'author' in content :
                 author = content['author']
             else:
                 author = None
+            if 'urlToImage' in content:
+                urlToImage = content['urlToImage']
+            else :
+                urlToImage = None
+            if 'description' in content:
+                description = content['description']
+            else :
+                description = None
             publishedAt = datetime.strptime(content['publishedAt'],timeFormat)
             n = News(url = url, author=author,title=title,description=description,urlToImage=urlToImage,publishedAt=publishedAt)
             db_session.add(n)
