@@ -59,7 +59,7 @@ class News(Base):
    
 
 class Scrap(Base):
-    __tablename__ = 'scrap'
+    __tablename__ = 'scrapv2'
 
     userId = Column(String(32), primary_key = True)
 
@@ -189,10 +189,11 @@ def delete_scrap_news():
     content = request.get_json(silent=True)
     userId = content['userId']
     url = content['url']
-    s = db_session.query(Scrap).filter_by(url = url).filter_by(userId = userId)
+    s = db_session.query(Scrap).filter_by(url = url).filter_by(userId = userId).first()
     if s is None:
-        return jsonify(success = False), 200
+        return jsonify(success = False), 400
     db_session.delete(s)
+    db_session.commit()
     return jsonify(success = True), 200
 
 
