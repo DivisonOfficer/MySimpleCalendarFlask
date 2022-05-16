@@ -141,6 +141,11 @@ def post_news():
     
     
     return jsonify(success = True), 200
+
+@app.route("/rollback", methods = ['GET'])
+def rollback_db():
+    db_session.rollback();
+    return jsonify(success = True), 200
 @app.route("/news/get", methods = ['POST'])
 def get_news():
     content = request.get_json(silent=True)
