@@ -132,9 +132,14 @@ def post_news():
                 description = None
             publishedAt = datetime.strptime(content['publishedAt'],timeFormat)
             n = News(url = url, author=author,title=title,description=description,urlToImage=urlToImage,publishedAt=publishedAt)
-            db_session.add(n)
+            try:
+                db_session.add(n)
+                db_session.commit()
+            except Exception : 
+                db_session.rollback()
+            
     
-    db_session.commit()
+    
     return jsonify(success = True), 200
 @app.route("/news/get", methods = ['POST'])
 def get_news():
